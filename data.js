@@ -6,14 +6,14 @@ const campusData = [
   {
     id: 1, name: "第一教学楼", subName: "信仁楼", type: "study", emoji: "💻",
     tagline: "信息之源，网络之芯", desc: "计算机学院、通信工程学院、网络空间安全学院教学基地。拥有丰富的实验室和实训空间。",
-    imgs: ["/image/1j.png"],
+    imgs: ["/image/1j.jpg"],
     lnglat: [120.344126, 30.311795], vrUrl: "https://www.720yun.com/t/cd9jOOmfzm6?scene_id=3411906",
     tags: ["计算机学院", "实验室"], queries: ["一教教室借用流程？"]
   },
   {
     id: 2, name: "第二教学楼", subName: "信义楼", type: "study", emoji: "⚡",
     tagline: "智控未来，电照前程", desc: "自动化、电子信息、机械工程等工科学院的教学与实验中心。",
-    imgs: ["/image/2j.png", "/image/2j_2.png", "/image/2j_3.png"],
+    imgs: ["/image/2j.jpg", "/image/2j_2.jpg", "/image/2j_3.jpg"],
     lnglat: [120.342327, 30.312003], vrUrl: "https://www.720yun.com/t/cd9jOOmfzm6?scene_id=3451517"
   },
   {
@@ -186,7 +186,7 @@ const campusData = [
   {
     id: 32, name: "体育馆", subName: "亚运击剑馆", type: "sport", emoji: "🏟️",
     desc: "杭州第二大体育馆，曾是CBA主场，也是亚运击剑场馆。飞碟造型地标。",
-    imgs: ["/image/dtyg.png"],
+    imgs: ["/image/dtyg.jpg"],
     lnglat: [120.340054, 30.314915], vrUrl: "https://www.720yun.com/t/cd9jOOmfzm6?scene_id=3451537",
     tags: ["亚运场馆", "飞碟造型"],tagline:"国家级赛事场馆，教学训练文艺演出"
   },
@@ -199,7 +199,7 @@ const campusData = [
     emoji: "🗣️", // 外语特色
     tagline: "语言桥梁，世界窗口",
     desc: "三教是外国语学院的教学与办公中心，拥有多个语言实验室、多媒体教室和小班研讨室。",
-    imgs: ["/image/3j.png"],
+    imgs: ["/image/3j.jpg"],
     lnglat: [120.344200, 30.312673],
     vrUrl: "https://www.720yun.com/t/cd9jOOmfzm6?scene_id=3411907",
     queries: ["三教教室借用流程？"]
@@ -214,8 +214,8 @@ const campusData = [
     tagline: "信智交融，实验创新",
     desc: "四教是学校重要的综合实验楼，集科研展览、教学实验与学术报告于一体。",
     imgs: [
-      "/image/4j_2.png",
-      "/image/4j_3.png"
+      "/image/4j_2.jpg",
+      "/image/4j_3.jpg"
     ],
     lnglat: [120.342195, 30.313178],
     vrUrl: ""
@@ -230,8 +230,8 @@ const campusData = [
     desc: "七教是理学院和材料与环境工程学院的所在地，承担着大量数学、物理等基础学科教学任务。",
     imgs: [
       "/image/6j.png",
-      "/image/6j (1).png",
-      "/image/6j_2.png"
+      "/image/6j (1).jpg",
+      "/image/6j_2.jpg"
     ],
     lnglat: [120.342181, 30.314279],
     vrUrl: "https://www.720yun.com/t/cd9jOOmfzm6?scene_id=3411910"
@@ -307,8 +307,8 @@ const campusData = [
     tagline: "活力舞台，青春绽放",
     desc: "杭电社团活动、文艺排练与校园文化展示的核心。",
     imgs: [
-      "/image/xh_2.png",
-      "/image/xh_3.png"
+      "/image/xh_2.jpg",
+      "/image/xh_3.jpg"
     ],
     lnglat: [120.345849, 30.315313],
     vrUrl: "https://www.720yun.com/t/5e5jOgynkf3?scene_id=3346603"
@@ -443,8 +443,8 @@ const campusData = [
     tagline: "挥洒汗水",
     desc: "包含多个篮球场、排球场和网球场，全天候开放。",
     imgs: [
-      "/image/tycs_ltlqc.png",
-      "/image/tycs_ymqc.png"
+      "/image/tycs_ltlqc.jpg",
+      "/image/tycs_ymqc.jpg"
     ],
     lnglat: [120.340329, 30.312235],
     vrUrl: ""
@@ -464,7 +464,7 @@ const campusData = [
   {
     id:333, name: "3F健身房", subName: "氧适堡健身", type: "sport", emoji: "🏋️‍♂️",
     tagline: "氧适堡健身", desc: "离宿舍近，就在校园生活区内。价格便宜，新生开学有优惠。暑假翻新，器材更加齐全，一整排跑步机可供有氧。配备独立单间浴室，供应热水洗浴以及吹风机。连锁门店，对面传媒门口也有一家，双店通用。",
-    imgs: ["/image/yd.png"],
+    imgs: ["/image/yd.jpg"],
     lnglat: [120.34473331800689,30.31795305479342], tags: ["近宿舍", "独立浴室", "器材齐全", "双店通用", "性价比高"]
   },
   {
@@ -475,7 +475,7 @@ const campusData = [
     emoji: "⚽",
     tagline: "绿茵激战",
     desc: "标准的人工草皮足球场，适合开展各类足球赛事。",
-    imgs: ["/image/tycs_zqc.png"],
+    imgs: ["/image/tycs_zqc.jpg"],
     lnglat: [120.339842, 30.313671],
     vrUrl: "https://www.720yun.com/t/cd9jOOmfzm6?scene_id=3411893"
   },
@@ -487,7 +487,7 @@ const campusData = [
     emoji: "🏃",
     tagline: "奔跑吧少年",
     desc: "标准的田径跑道和足球场，晨跑夜跑首选地。",
-    imgs: ["/image/xibei.png"],
+    imgs: ["/image/xibei.jpg"],
     lnglat: [120.340125, 30.317035],
     vrUrl: "https://www.720yun.com/t/6cfjOgynkk5?scene_id=3400937"
   },
@@ -499,7 +499,7 @@ const campusData = [
     emoji: "🏃",
     tagline: "阳光体育",
     desc: "位于校园东侧的操场，靠近生活区。",
-    imgs: ["/image/tycs_dcc.png"],
+    imgs: ["/image/tycs_dcc.jpg"],
     lnglat: [120.347468, 30.314827],
     vrUrl: "https://www.720yun.com/t/cd9jOOmfzm6?scene_id=3451536"
   },
@@ -511,7 +511,7 @@ const campusData = [
     emoji: "🏊",
     tagline: "碧波畅游",
     desc: "校内标准游泳馆，夏天避暑好去处。",
-    imgs: ["/image/tycs_yyg.png"],
+    imgs: ["/image/tycs_yyg.jpg"],
     lnglat: [120.339293, 30.316517],
     vrUrl: ""
   },
@@ -523,7 +523,7 @@ const campusData = [
     emoji: "🎾",
     tagline: "无惧风雨",
     desc: "带顶棚的专业网球场地。",
-    imgs: ["/image/tycs_wqc.png"],
+    imgs: ["/image/tycs_wqc.jpg"],
     lnglat: [120.340876, 30.312884],
     vrUrl: ""
   },
@@ -535,7 +535,7 @@ const campusData = [
     emoji: "🏸",
     tagline: "室内运动场",
     desc: "多功能室内运动场地。",
-    imgs: ["/image/tycs_lqc.png","/image/yumaoqiuguan.jpg"],
+    imgs: ["/image/tycs_lqc.jpg","/image/yumaoqiuguan.jpg"],
     lnglat: [120.340693, 30.313708],
     vrUrl: ""
   },
