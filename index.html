@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>HDU NAV - 校园智能导览</title>
+  
+  <script>
+    // 屏蔽 PressureObserver 报错
+    if (typeof PressureObserver !== 'undefined') {
+      window.PressureObserver = undefined;
+    }
+    // 拦截非关键报错
+    window.addEventListener('unhandledrejection', function(event) {
+      const msg = event.reason && event.reason.message ? event.reason.message : '';
+      if (msg.includes('PressureObserver') || msg.includes('message channel closed')) {
+        event.preventDefault();
+      }
+    });
+  </script>
+
+  <style>
+    /* ========== 1. 核心变量 ========== */
+    :root {
+      --bg-color: #f0f4f8;
+      --sticker-border: 2px solid #ffffff; 
+      --sticker-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      --color-study: #4d8af0; --color-food: #ffcf48; --color-living: #ff7eb6;
+      --color-sport: #6bdc9c; --color-scenery: #a29bfe;
+      --text-main: #333; --text-sub: #888; --card-bg: #fff;
+    }
+
+    body.night-mode {
+      --bg-color: #121212;
+      --sticker-border: 2px solid #333; 
+      --sticker-shadow: 0 4px 15px rgba(0,0,0,0.6);
+      --text-main: #e0e0e0; --text-sub: #aaa; --card-bg: #252525;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background-color: var(--bg-color);
+      height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+      transition: background 0.3s ease;
+    }
+
+    /* ========== 2. 跑马灯 ========== */
+    .tape-marquee { flex: 0 0 36px; background: var(--color-food); display: flex; align-items: center; overflow: hidden; white-space: nowrap; font-weight: bold; color: #444; font-size: 13px; z-index: 50; border-bottom: 2px solid rgba(255,255,255,0.4); }
+    .marquee-text { padding-left: 100%; animation: scroll 30s linear infinite; }
+    @keyframes scroll { 100% { transform: translate3d(-100%, 0, 0); } }
+
+    #mapContainer { flex: 1; width: 100%; height: 100%; }
+    body.night-mode #mapContainer { filter: brightness(0.65); }
+
+    /* ========== 3. 侧边栏 ========== */
+    .sticker-sidebar {
+      position: absolute; top: 60px; left: 15px; width: 44px; 
+      background: var(--card-bg); border-radius: 22px;
+      border: var(--sticker-border); box-shadow: var(--sticker-shadow);
+      padding: 8px 0; z-index: 60;
+      display: flex; flex-direction: column; align-items: center; gap: 8px; 
+      white-space: nowrap; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+      overflow: hidden;
+    }
+    .sticker-sidebar:hover { width: 140px; border-radius: 12px; align-items: stretch; padding: 12px; }
+    
+    .brand { 
+      font-size: 14px; font-weight: 900; color: var(--color-study); text-align: center;
+      opacity: 0; height: 0; transition: opacity 0.2s;
+    }
+    body.night-mode .brand { color: #6ba5ff; }
+    .sticker-sidebar:hover .brand { opacity: 1; height: auto; margin-bottom: 8px; display: block;}
+    
+    .filter-btn { 
+      width: 30px; height: 30px; border-radius: 50%; background: #f4f4f5; 
+      display: flex; align-items: center; justify-content: center; 
+      cursor: pointer; margin: 0 auto; color: var(--text-main); transition: all 0.3s;
+    }
+    body.night-mode .filter-btn { background: #333; }
+    .sticker-sidebar:hover .filter-btn { width: 100%; border-radius: 8px; justify-content: flex-start; padding-left: 10px; }
+    
+    .filter-text { 
+      font-size: 12px; font-weight: bold; color: var(--text-main);
+      opacity: 0; max-width: 0; transition: all 0.3s;
+    }
+    .sticker-sidebar:hover .filter-text { opacity: 1; max-width: 90px; margin-left: 8px; }
+    .filter-btn.active { background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border: 2px solid var(--color-study); }
+    body.night-mode .filter-btn.active { background: #444; border-color: #6ba5ff; }
+
+    /* ========== 4. 详情卡片 ========== */
+    .pop-card {
+      position: fixed; bottom: 25px; left: 75px; 
+      width: 360px; max-height: 78vh; background: var(--card-bg); border-radius: 16px;
+      border: var(--sticker-border); box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      z-index: 100; overflow: hidden; display: flex; flex-direction: column;
+      transform: translate3d(0, 130%, 0); transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    }
+    .pop-card.active { transform: translate3d(0, 0, 0); }
+    @media (max-width: 768px) { .pop-card { left: 50%; transform: translate3d(-50%, 130%, 0); width: 92%; bottom: 20px; } .pop-card.active { transform: translate3d(-50%, 0, 0); } }
+
+    /* 轮播 */
+    .carousel-wrapper { position: relative; width: 100%; height: 180px; background: #eee; flex-shrink: 0; }
+    .card-cover { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.3s; }
+    .carousel-btn { position: absolute; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; background: rgba(0,0,0,0.4); border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5; font-weight: bold; }
+    .btn-prev { left: 10px; } .btn-next { right: 10px; }
+    .img-counter { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.6); color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 10px; }
+
+    .card-body { padding: 18px; overflow-y: auto; flex: 1; }
+    .card-title-group { margin-bottom: 10px; }
+    .card-title { font-size: 20px; font-weight: 900; color: var(--text-main); }
+    .card-subname { font-size: 13px; color: var(--text-sub); font-weight: bold; margin-top: 2px; }
+    .card-tagline { font-size: 11px; font-weight: 800; margin: 8px 0; padding: 4px 0; border-top: 1px dashed #eee; display: block; }
+    
+    .info-grid { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #edf2f7; }
+    body.night-mode .info-grid { background: #1a1a1a; border-color: #333; }
+    .info-item { display: none; align-items: center; gap: 8px; font-size: 12px; color: var(--text-main); }
+    
+    .card-desc { font-size: 13px; line-height: 1.5; color: var(--text-sub); margin-bottom: 15px; }
+    .floor-box { background: #f9f9f9; padding: 10px; border-radius: 8px; margin-bottom: 12px; border-left: 3px solid #ddd; font-size: 11px; color: var(--text-main); }
+    body.night-mode .floor-box { background: #333; border-color: #555; }
+
+    .ai-interaction { margin-bottom: 12px; background: #f0f7ff; border-radius: 10px; padding: 12px; border: 1px solid #d6e4ff; }
+    body.night-mode .ai-interaction { background: #1a2736; border-color: #2d3d50; }
+    .ai-label { font-size: 11px; font-weight: bold; color: #4d8af0; margin-bottom: 8px; }
+    .ai-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .ai-tag { background: #fff; color: #444; border: 1px solid #bad6fc; border-radius: 15px; padding: 5px 12px; font-size: 11px; cursor: pointer; margin-top: 5px; display: inline-block; }
+    body.night-mode .ai-tag { background: #333; color: #ccc; border-color: #444; }
+
+    .btn-group { display: flex; gap: 8px; margin-top: 10px; }
+    .btn-action { flex: 1; padding: 11px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: #fff; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+    .btn-nav { background: var(--color-study); box-shadow: 0 4px 10px rgba(77,138,240,0.3); }
+    .btn-app { background: var(--color-sport); }
+    .btn-vr { background: var(--color-scenery); }
+    
+    .close-btn { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; background: rgba(0,0,0,0.5); border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; font-weight: bold; }
+
+    /* ========== 6. Marker ========== */
+    .sticker-marker-container { display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform 0.2s; }
+    .sticker-marker-container:hover { transform: scale(1.1); z-index: 999; }
+    .sticker-icon { width: 36px; height: 36px; background: #fff; border-radius: 50%; border: 3px solid #fff; box-shadow: var(--sticker-shadow); display: flex; align-items: center; justify-content: center; font-size: 18px; transition: background 0.3s; }
+    .sticker-info { background: #fff; margin-top: -6px; padding: 7px 9px 4px 9px; border-radius: 7px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center; min-width: 65px; transition: background 0.3s; }
+    .info-main { font-size: 11px; font-weight: bold; color: #333; transition: color 0.3s; }
+
+    body.night-mode .sticker-icon { background: #2a2a2a; border-color: #444; }
+    body.night-mode .sticker-info { background: #2a2a2a; border: 1px solid #444; }
+    body.night-mode .info-main { color: #eee; }
+
+    .bg-study { border-color: var(--color-study) !important; color: var(--color-study); }
+    .bg-food { border-color: var(--color-food) !important; color: #d69e00; }
+    .bg-living { border-color: var(--color-living) !important; color: var(--color-living); }
+    .bg-sport { border-color: var(--color-sport) !important; color: var(--color-sport); }
+    .bg-scenery { border-color: var(--color-scenery) !important; color: var(--color-scenery); }
+
+    .nav-toast { position: fixed; top: 120px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: #fff; padding: 10px 20px; border-radius: 25px; font-size: 12px; z-index: 300; opacity: 0; pointer-events: none; transition: 0.3s; }
+    .nav-toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <div class="tape-marquee"><div class="marquee-text">📢 HDU NAV · 校园智能导览系统终极版 · 💡 智能客服已修复 · 🍜 食堂供应时间已更新</div></div>
+
+  <aside class="sticker-sidebar">
+    <div class="brand">HDU NAV</div>
+    <div class="filter-btn active" data-type="all" onclick="filterMap('all', this)"><span>🏫</span> <span class="filter-text">全部地点</span></div>
+    <div class="filter-btn" data-type="study" onclick="filterMap('study', this)"><span>📖</span> <span class="filter-text">教学办公</span></div>
+    <div class="filter-btn" data-type="food" onclick="filterMap('food', this)"><span>🍗</span> <span class="filter-text">餐厅美食</span></div>
+    <div class="filter-btn" data-type="living" onclick="filterMap('living', this)"><span>🛌</span> <span class="filter-text">校园生活</span></div>
+    <div class="filter-btn" data-type="sport" onclick="filterMap('sport', this)"><span>⚽</span> <span class="filter-text">体育运动</span></div>
+    <div class="filter-btn" data-type="scenery" onclick="filterMap('scenery', this)"><span>📸</span> <span class="filter-text">人文景观</span></div>
+    <div class="toggle-night" onclick="toggleNightMode()"><span>🌑</span></div>
+  </aside>
+
+  <div id="mapContainer"></div>
+
+  <div id="stopNavBtn" style="position:fixed; bottom:30px; left:50%; transform:translateX(-50%) scale(0); background:#ff4d4f; color:#fff; padding:12px 25px; border-radius:30px; font-weight:bold; z-index:110; border:2px solid #fff; transition:0.3s; cursor:pointer;" onclick="clearNav()">❌ 结束导航</div>
+
+  <div class="pop-card" id="detailCard">
+    <div class="close-btn" onclick="closeCard()">×</div>
+    <div class="carousel-wrapper">
+      <div class="carousel-btn btn-prev" onclick="changeImg(-1)">‹</div>
+      <img src="" class="card-cover" id="cImg">
+      <div class="carousel-btn btn-next" onclick="changeImg(1)">›</div>
+      <div id="imgCounter" class="img-counter">1/1</div>
+    </div>
+    <div class="card-body">
+      <div class="card-title-group">
+        <div class="card-title" id="cTitle">地点</div>
+        <div class="card-subname" id="cSubName">副标题</div>
+      </div>
+      <div id="cTags" style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px;"></div>
+      <div class="card-tagline" id="cTagline">标语...</div>
+
+      <div class="info-grid" id="cInfoGrid">
+        <div class="info-item" id="cTimeBox"><span>🕒</span> <span id="cTime"></span></div>
+        <div class="info-item" id="cPhoneBox"><span>📞</span> <span id="cPhone"></span></div>
+      </div>
+      
+      <div class="card-desc" id="cDesc">描述内容...</div>
+      <div id="floorContainer" style="margin-bottom:12px;"></div>
+      <div class="ai-interaction"><div class="ai-label">✨ 问问 AI 助手：</div><div id="aiTags"></div></div>
+      
+      <div class="btn-group">
+        <button class="btn-action btn-nav" onclick="startNav()">📍 导航</button>
+        <button class="btn-action btn-app" onclick="openAmapApp()">🚀 App</button>
+        <button class="btn-action btn-vr" id="btnVR" onclick="openVR()">👓 VR</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="https://lf-cdn.coze.cn/obj/unpkg/flow-platform/chat-app-sdk/1.2.0-beta.3/libs/cn/index.js"></script>
+
+  <script>
+    // 定义全局变量
+    let map, currentSpot, walking, navPolyline, markers = [], currentImgIndex = 0, currentImgs = [], toastTimer = null;
+
+    // ✨ 新的入口函数：先获取配置，再加载地图和AI
+    window.onload = async function() {
+      try {
+        // 1. 向我们要刚刚写的后端函数发起请求
+        const res = await fetch('/api/config');
+        const config = await res.json();
+
+        if (!config.botId || !config.patToken) {
+          console.error("配置获取失败");
+          return;
+        }
+
+        // 2. 注入高德安全密钥
+        window._AMapSecurityConfig = { securityJsCode: config.mapSecurity };
+
+        // 3. 动态加载高德地图 JS (因为Key现在是动态的了)
+        await loadAMapScript(config.mapKey);
+
+        // 4. 地图加载完成后，初始化地图逻辑
+        initMap();
+
+        // 5. 初始化 Coze (传入从后端拿到的 ID 和 Token)
+        initCoze(config.botId, config.patToken);
+
+      } catch (e) {
+        console.error("初始化失败:", e);
+        alert("系统配置加载失败，请检查网络");
+      }
+    };
+
+    // 辅助函数：动态加载高德脚本
+    function loadAMapScript(key) {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = `https://webapi.amap.com/maps?v=2.0&key=${key}&plugin=AMap.Walking,AMap.Geolocation`;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
+
+    function initMap() {
+      map = new AMap.Map('mapContainer', { zoom: 17, center: [120.343287, 30.314179], viewMode: '2D', zooms: [15, 20] });
+      const layer = new AMap.ImageLayer({
+        url: '/1.jpg',
+        bounds: new AMap.Bounds([120.338556, 30.309357], [120.348388, 30.318592]),
+        zIndex: 10
+      });
+      map.add(layer); renderMarkers(); walking = new AMap.Walking({ map: map });
+    }
+
+    function renderMarkers() {
+      campusData.forEach(item => {
+        const div = document.createElement('div'); div.className = 'sticker-marker-container';
+        div.innerHTML = `<div class="sticker-icon bg-${item.type}">${item.emoji}</div><div class="sticker-info"><div class="info-main">${item.name}</div></div>`;
+        const marker = new AMap.Marker({ position: item.lnglat, content: div, offset: new AMap.Pixel(-18, -36), map: map });
+        marker.on('click', () => { showDetail(item); map.panTo(item.lnglat); });
+        markers.push({ instance: marker, type: item.type });
+      });
+    }
+
+    function changeImg(dir) { 
+      if (currentImgs.length <= 1) return;
+      currentImgIndex = (currentImgIndex + dir + currentImgs.length) % currentImgs.length;
+      updateCarouselUI();
+    }
+
+    function updateCarouselUI() {
+      const imgEl = document.getElementById('cImg');
+      imgEl.style.opacity = 0;
+      setTimeout(() => {
+        imgEl.src = currentImgs[currentImgIndex]; imgEl.style.opacity = 1;
+        document.getElementById('imgCounter').innerText = `${currentImgIndex + 1}/${currentImgs.length}`;
+      }, 150);
+      document.querySelectorAll('.carousel-btn').forEach(b => b.style.display = currentImgs.length > 1 ? 'flex' : 'none');
+    }
+
+    function showDetail(data) {
+      currentSpot = data; 
+      currentImgs = (data.imgs && data.imgs.length > 0) ? data.imgs : ["https://via.placeholder.com/400x200?text=No+Image"];
+      currentImgIndex = 0; 
+      updateCarouselUI();
+
+      document.getElementById('cTitle').innerText = data.name;
+      document.getElementById('cSubName').innerText = data.subName || "";
+      document.getElementById('cTagline').innerText = data.tagline || "";
+      document.getElementById('cTagline').style.display = data.tagline ? 'block' : 'none';
+      document.getElementById('cDesc').innerText = data.desc || "";
+
+      const colors = { study: '#4d8af0', food: '#ffcf48', living: '#ff7eb6', sport: '#6bdc9c', scenery: '#a29bfe' };
+      document.getElementById('cTagline').style.color = colors[data.type] || '#333';
+
+      document.getElementById('cTags').innerHTML = (data.tags || []).map(t => `<span style="font-size:10px; padding:2px 6px; background:#f0f7ff; color:#4d8af0; border-radius:4px; font-weight:bold; margin-right:4px;">${t}</span>`).join('');
+
+      const timeItem = document.getElementById('cTimeBox');
+      const phoneItem = document.getElementById('cPhoneBox');
+      const infoGrid = document.getElementById('cInfoGrid');
+      
+      let hasAnyInfo = false;
+      if (data.openTime) { timeItem.style.display = 'flex'; document.getElementById('cTime').innerText = data.openTime; hasAnyInfo = true; } else { timeItem.style.display = 'none'; }
+      if (data.phone) { phoneItem.style.display = 'flex'; document.getElementById('cPhone').innerText = data.phone; hasAnyInfo = true; } else { phoneItem.style.display = 'none'; }
+      infoGrid.style.display = hasAnyInfo ? 'flex' : 'none';
+
+      const fDiv = document.getElementById('floorContainer');
+      if(data.floors && data.floors.length > 0) {
+        fDiv.style.display = 'block';
+        fDiv.innerHTML = `<div class="floor-box">${data.floors.map(f => `<div>• ${f}</div>`).join('')}</div>`;
+      } else { fDiv.style.display = 'none'; }
+
+      document.getElementById('aiTags').innerHTML = (data.queries || [`${data.name}怎么走？`]).map(q => `<div class="ai-tag" onclick="askAI('${q}')">${q}</div>`).join('');
+      document.getElementById('btnVR').style.display = data.vrUrl ? 'flex' : 'none';
+      document.getElementById('detailCard').classList.add('active');
+    }
+
+    function closeCard() { document.getElementById('detailCard').classList.remove('active'); }
+
+    function startNav() {
+      closeCard(); walking.clear(); if(navPolyline) map.remove(navPolyline);
+      AMap.plugin('AMap.Geolocation', function() {
+        new AMap.Geolocation({ enableHighAccuracy:true, timeout:6000 }).getCurrentPosition((status, res) => {
+          if(status === 'complete') {
+            const straight = AMap.GeometryUtil.distance(res.position, currentSpot.lnglat);
+            walking.search(res.position, currentSpot.lnglat, (status, result) => {
+              if(status==='complete' && result.routes[0].distance < straight * 3.5) {
+                document.getElementById('stopNavBtn').style.transform = "translateX(-50%) scale(1)";
+                showToast(`导航开始，全程 ${result.routes[0].distance} 米`);
+              } else { drawDirectLine(res.position, currentSpot.lnglat); }
+            });
+          } else { showToast("定位失败，请检查HTTPS"); }
+        });
+      });
+    }
+
+    function drawDirectLine(s, e) {
+      navPolyline = new AMap.Polyline({ path:[s, e], strokeStyle:"dashed", strokeColor:"#4d8af0", strokeWeight:5, map:map });
+      map.setFitView([navPolyline]); document.getElementById('stopNavBtn').style.transform = "translateX(-50%) scale(1)";
+      showToast("路径复杂，已开启直线指引模式 🚀");
+    }
+
+    function clearNav() { walking.clear(); if(navPolyline) map.remove(navPolyline); document.getElementById('stopNavBtn').style.transform = "translateX(-50%) scale(0)"; }
+
+    function openAmapApp() { window.open(`https://uri.amap.com/marker?position=${currentSpot.lnglat[0]},${currentSpot.lnglat[1]}&name=${encodeURIComponent(currentSpot.name)}`, '_blank'); }
+
+    function openVR() { if(currentSpot.vrUrl) window.open(currentSpot.vrUrl, '_blank'); }
+
+    function askAI(q) { 
+      navigator.clipboard.writeText(q).then(()=> { 
+        showToast("已复制问题，请粘贴发送 👉"); 
+        const btn = document.querySelector('.coze-web-chat-btn') || document.querySelector('div[class*="chat-btn"]');
+        if (btn) btn.click();
+      }); 
+    }
+
+    function filterMap(type, btn) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active');
+      markers.forEach(m => { if(type==='all' || m.type===type) m.instance.show(); else m.instance.hide(); });
+    }
+
+    function toggleNightMode() { document.body.classList.toggle('night-mode'); }
+    function showToast(msg) {
+      let t = document.getElementById('navToast'); if(!t) { t=document.createElement('div'); t.id='navToast'; t.className='nav-toast'; document.body.appendChild(t); }
+      t.innerText=msg; t.classList.add('show');
+      clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('show'), 3000);
+    }
+    
+    // ========== Coze 初始化修复版 ==========
+    function initCoze(botId, patToken) {
+      try {
+        new CozeWebSDK.WebChatClient({
+          config: { bot_id: botId },
+          auth: {
+            type: 'token',
+            token: patToken,
+            onRefreshToken: async () => patToken,
+          },
+          componentProps: {
+            title: 'HDU 助手',
+            layout: 'right-panel',
+            lang: 'zh-CN',
+          },
+          ui: { base: { zIndex: 1000 } }
+        });
+      } catch (e) { console.error("Coze init failed", e); }
+    }
+  </script>
+</body>
+</html>
